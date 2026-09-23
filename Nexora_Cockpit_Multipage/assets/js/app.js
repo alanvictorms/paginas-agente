@@ -62,6 +62,19 @@
   $('#dropzone')?.addEventListener('click',()=>fileInput?.click());
   document.addEventListener('click',event=>{const remove=event.target.closest('.source-remove');if(remove){remove.closest('.source-item')?.remove();toast('Fonte removida.','ph-trash')}});
 
+  $$('[data-detail-tab]').forEach(button=>button.addEventListener('click',()=>{
+    $$('[data-detail-tab]').forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active))});
+    $$('[data-detail-view]').forEach(view=>view.classList.toggle('active',view.dataset.detailView===button.dataset.detailTab));
+  }));
+  const detailsPanel=$('.source-side');
+  if(detailsPanel){
+    const runbar=$('.runbar');
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='icon-btn details-toggle';toggle.setAttribute('aria-label','Abrir detalhes do projeto');toggle.innerHTML='<i class="ph ph-sidebar-simple"></i>';runbar?.append(toggle);
+    const close=document.createElement('button');close.type='button';close.className='icon-btn details-close';close.setAttribute('aria-label','Fechar detalhes');close.innerHTML='<i class="ph ph-x"></i>';$('.panel-title',detailsPanel)?.append(close);
+    toggle.addEventListener('click',()=>detailsPanel.classList.toggle('mobile-open'));
+    close.addEventListener('click',()=>detailsPanel.classList.remove('mobile-open'));
+  }
+
   $$('[data-billing]').forEach(button=>button.addEventListener('click',()=>{$$('[data-billing]').forEach(item=>item.classList.toggle('active',item===button));$$('.price[data-month]').forEach(price=>price.innerHTML=`${button.dataset.billing==='year'?price.dataset.year:price.dataset.month} <small>/mês</small>`)}));
   $$('[data-plan]').forEach(button=>button.addEventListener('click',()=>toast(`Plano ${button.dataset.plan} selecionado.`,'ph-seal-check')));
 
@@ -71,13 +84,7 @@
   const savedTheme=localStorage.getItem('nexora-theme');if(savedTheme&&themes[savedTheme]){document.documentElement.style.setProperty('--copper',themes[savedTheme][0]);document.documentElement.style.setProperty('--copper2',themes[savedTheme][1]);$$('.theme-card').forEach(item=>item.classList.toggle('active',item.dataset.theme===savedTheme))}
   $$('form[data-save]').forEach(form=>form.addEventListener('submit',event=>{event.preventDefault();toast('Alterações salvas.','ph-check-circle')}));
 
-  const coreModel=$('.core-model');
-  if(coreModel){
-    coreModel.src=window.NEXORA_BRAIN_GLB||'assets/models/brain.glb';
-    coreModel.addEventListener('load',()=>coreModel.classList.add('loaded'));
-    coreModel.addEventListener('error',()=>{const img=document.createElement('img');img.className='core-image';img.src='assets/images/nexora-core.png';img.alt='Núcleo computacional Nexora';coreModel.parentElement.replaceWith(img)});
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)coreModel.removeAttribute('auto-rotate');
-  }
+  const coreModel=$('.core-model');if(coreModel)coreModel.src=window.NEXORA_BRAIN_GLB||'assets/models/blue-brain.glb';
 
   $('#loginForm')?.addEventListener('submit',event=>{event.preventDefault();const button=$('[type="submit"]',event.currentTarget);button.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';setTimeout(()=>location.href='index.html',650)});
 })();
