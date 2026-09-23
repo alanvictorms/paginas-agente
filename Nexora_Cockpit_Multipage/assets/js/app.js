@@ -71,5 +71,13 @@
   const savedTheme=localStorage.getItem('nexora-theme');if(savedTheme&&themes[savedTheme]){document.documentElement.style.setProperty('--copper',themes[savedTheme][0]);document.documentElement.style.setProperty('--copper2',themes[savedTheme][1]);$$('.theme-card').forEach(item=>item.classList.toggle('active',item.dataset.theme===savedTheme))}
   $$('form[data-save]').forEach(form=>form.addEventListener('submit',event=>{event.preventDefault();toast('Alterações salvas.','ph-check-circle')}));
 
+  const coreModel=$('.core-model');
+  if(coreModel){
+    coreModel.src=window.NEXORA_BRAIN_GLB||'assets/models/brain.glb';
+    coreModel.addEventListener('load',()=>coreModel.classList.add('loaded'));
+    coreModel.addEventListener('error',()=>{const img=document.createElement('img');img.className='core-image';img.src='assets/images/nexora-core.png';img.alt='Núcleo computacional Nexora';coreModel.parentElement.replaceWith(img)});
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)coreModel.removeAttribute('auto-rotate');
+  }
+
   $('#loginForm')?.addEventListener('submit',event=>{event.preventDefault();const button=$('[type="submit"]',event.currentTarget);button.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';setTimeout(()=>location.href='index.html',650)});
 })();
