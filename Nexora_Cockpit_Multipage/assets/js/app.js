@@ -110,6 +110,20 @@
       tab.addEventListener('click',()=>{if(shell.classList.contains('modules-collapsed'))setCollapsed(false);selectModule(tab.dataset.module);if(tab.dataset.module==='preview')openPreview()});
       tab.addEventListener('keydown',event=>{const step={ArrowDown:1,ArrowUp:-1}[event.key];if(!step)return;event.preventDefault();const target=tabs[(index+step+tabs.length)%tabs.length];target.focus();target.click()});
     });
+    // Largura do painel: arrastar a borda direita. Mínimo = largura padrão (404px), só aumenta.
+    const moduleResize=$('.module-resize',moduleSide),minModules=404;
+    const clampModules=width=>Math.round(Math.max(minModules,Math.min(width,innerWidth*0.6)));
+    function setModulesWidth(width,save){shell.style.setProperty('--modules-width',clampModules(width)+'px');if(save)try{localStorage.setItem('nexora-modules-width',String(clampModules(width)))}catch(error){}}
+    try{const saved=Number(localStorage.getItem('nexora-modules-width'));if(saved)setModulesWidth(saved)}catch(error){}
+    moduleResize?.addEventListener('pointerdown',event=>{
+      event.preventDefault();moduleResize.setPointerCapture(event.pointerId);shell.classList.add('resizing');
+      const left=moduleSide.getBoundingClientRect().left;
+      const move=moveEvent=>setModulesWidth(moveEvent.clientX-left);
+      const stop=()=>{shell.classList.remove('resizing');setModulesWidth(moduleSide.getBoundingClientRect().width,true);moduleResize.removeEventListener('pointermove',move);moduleResize.removeEventListener('pointerup',stop);moduleResize.removeEventListener('pointercancel',stop)};
+      moduleResize.addEventListener('pointermove',move);moduleResize.addEventListener('pointerup',stop);moduleResize.addEventListener('pointercancel',stop);
+    });
+    moduleResize?.addEventListener('keydown',event=>{const step={ArrowRight:40,ArrowLeft:-40}[event.key];if(!step)return;event.preventDefault();setModulesWidth(moduleSide.getBoundingClientRect().width+step,true)});
+    moduleResize?.addEventListener('dblclick',()=>setModulesWidth(minModules,true));
     collapseButton.addEventListener('click',()=>setCollapsed(!shell.classList.contains('modules-collapsed')));
     try{if(localStorage.getItem('nexora-modules-collapsed')==='1')setCollapsed(true)}catch(error){}
 
