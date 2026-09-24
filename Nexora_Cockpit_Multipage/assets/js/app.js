@@ -66,13 +66,85 @@
     $$('[data-detail-tab]').forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active))});
     $$('[data-detail-view]').forEach(view=>view.classList.toggle('active',view.dataset.detailView===button.dataset.detailTab));
   }));
-  const detailsPanel=$('.source-side');
-  if(detailsPanel){
-    const runbar=$('.runbar');
-    const toggle=document.createElement('button');toggle.type='button';toggle.className='icon-btn details-toggle';toggle.setAttribute('aria-label','Abrir detalhes do projeto');toggle.innerHTML='<i class="ph ph-sidebar-simple"></i>';runbar?.append(toggle);
-    const close=document.createElement('button');close.type='button';close.className='icon-btn details-close';close.setAttribute('aria-label','Fechar detalhes');close.innerHTML='<i class="ph ph-x"></i>';$('.panel-title',detailsPanel)?.append(close);
-    toggle.addEventListener('click',()=>detailsPanel.classList.toggle('mobile-open'));
-    close.addEventListener('click',()=>detailsPanel.classList.remove('mobile-open'));
+  // Chat do projeto (chat.html): painel de módulos, agente 3D, código e preview
+  const moduleSide=$('#moduleSide');
+  if(moduleSide){
+    const shell=$('.chat-shell'),collapseButton=$('[data-module-collapse]',moduleSide),preview=$('#previewWindow');
+    let agentRequested=false;
+    function loadAgent(){
+      if(agentRequested)return;agentRequested=true;
+      const host=$('.agent-model',moduleSide);if(!host)return;
+      const sources=['assets/js/vendor/three.min.js','assets/js/vendor/GLTFLoader.js','assets/js/vendor/OrbitControls.js','assets/models/brain-hologram/brain_hologram.glb.part1.js','assets/models/brain-hologram/brain_hologram.glb.part2.js','assets/js/brain3d.js'];
+      (function next(index){
+        if(index===sources.length){window.NexoraBrain3D?.(host);return}
+        const script=document.createElement('script');script.src=sources[index];
+        script.onload=()=>next(index+1);
+        script.onerror=()=>{const status=$('.core-model-status',host);if(status)status.textContent='Não foi possível carregar o agente.'};
+        document.body.append(script);
+      })(0);
+    }
+    // Só carrega o modelo 3D quando a aba Agente estiver visível (evita travar o celular com o painel fechado)
+    const drawerMode=matchMedia('(max-width:1050px)');
+    function maybeLoadAgent(){
+      if($('.module-tab.active',moduleSide)?.dataset.module!=='agent')return;
+      const visible=drawerMode.matches?moduleSide.classList.contains('mobile-open'):!shell.classList.contains('modules-collapsed');
+      if(visible)loadAgent();
+    }
+    function setCollapsed(collapsed){
+      shell.classList.toggle('modules-collapsed',collapsed);
+      const label=collapsed?'Expandir painel':'Recolher painel';
+      collapseButton.setAttribute('aria-expanded',String(!collapsed));collapseButton.setAttribute('aria-label',label);collapseButton.dataset.tooltip=label;
+      $('i',collapseButton).className='ph ph-caret-double-'+(collapsed?'right':'left');
+      try{localStorage.setItem('nexora-modules-collapsed',collapsed?'1':'0')}catch(error){}
+      if(!collapsed)maybeLoadAgent();
+    }
+    function selectModule(name){
+      $$('.module-tab',moduleSide).forEach(tab=>{const active=tab.dataset.module===name;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;$('i',tab).className=(active?'ph-fill':'ph')+' ph-'+tab.dataset.icon});
+      $$('[data-module-view]',moduleSide).forEach(view=>view.classList.toggle('active',view.dataset.moduleView===name));
+      $('#moduleTitle').textContent=$(`.module-tab[data-module="${name}"]`,moduleSide).dataset.title;
+      if(name==='agent')loadAgent();
+    }
+    const tabs=$$('.module-tab',moduleSide);
+    tabs.forEach((tab,index)=>{
+      tab.tabIndex=tab.classList.contains('active')?0:-1;
+      tab.addEventListener('click',()=>{if(shell.classList.contains('modules-collapsed'))setCollapsed(false);selectModule(tab.dataset.module);if(tab.dataset.module==='preview')openPreview()});
+      tab.addEventListener('keydown',event=>{const step={ArrowDown:1,ArrowUp:-1}[event.key];if(!step)return;event.preventDefault();const target=tabs[(index+step+tabs.length)%tabs.length];target.focus();target.click()});
+    });
+    collapseButton.addEventListener('click',()=>setCollapsed(!shell.classList.contains('modules-collapsed')));
+    try{if(localStorage.getItem('nexora-modules-collapsed')==='1')setCollapsed(true)}catch(error){}
+
+    const drawerToggle=document.createElement('button');drawerToggle.type='button';drawerToggle.className='icon-btn modules-toggle';drawerToggle.setAttribute('aria-label','Módulos do projeto');drawerToggle.innerHTML='<i class="ph ph-sidebar-simple"></i>';$('.runbar')?.append(drawerToggle);
+    drawerToggle.addEventListener('click',()=>{moduleSide.classList.toggle('mobile-open');maybeLoadAgent()});
+    $('[data-module-close]',moduleSide)?.addEventListener('click',()=>moduleSide.classList.remove('mobile-open'));
+
+    $$('[data-code-file]',moduleSide).forEach(button=>button.addEventListener('click',()=>{
+      $$('[data-code-file]',moduleSide).forEach(item=>item.classList.toggle('active',item===button));
+      $('#codeBody').innerHTML=$(`template[data-code-template="${button.dataset.codeFile}"]`).innerHTML;
+      $('#codeName').textContent=button.dataset.codeName;$('#codeDiff').textContent=button.dataset.codeDiff;
+    }));
+
+    function openPreview(){if(!preview)return;preview.classList.add('open');preview.setAttribute('aria-hidden','false');moduleSide.classList.remove('mobile-open')}
+    function closePreview(){if(!preview)return;preview.classList.remove('open');preview.setAttribute('aria-hidden','true')}
+    $$('[data-open-preview]').forEach(button=>button.addEventListener('click',openPreview));
+    $('[data-preview-close]',preview)?.addEventListener('click',closePreview);
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')closePreview()});
+    $$('[data-preview-device]',preview).forEach(button=>button.addEventListener('click',()=>{
+      $$('[data-preview-device]',preview).forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active))});
+      $('.preview-frame',preview).dataset.device=button.dataset.previewDevice;
+    }));
+    $('[data-preview-reload]',preview)?.addEventListener('click',()=>{const frame=$('.preview-frame',preview);frame.classList.add('reloading');setTimeout(()=>{frame.classList.remove('reloading');toast('Preview atualizado · build #148.','ph-arrow-clockwise')},500)});
+    const handle=$('.preview-resize',preview);
+    const clampWidth=width=>Math.max(360,Math.min(width,innerWidth-120));
+    handle?.addEventListener('pointerdown',event=>{
+      event.preventDefault();handle.setPointerCapture(event.pointerId);preview.classList.add('resizing');
+      const right=innerWidth-preview.getBoundingClientRect().right;
+      const move=moveEvent=>{preview.style.width=clampWidth(innerWidth-right-moveEvent.clientX)+'px'};
+      const stop=()=>{preview.classList.remove('resizing');handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',stop);handle.removeEventListener('pointercancel',stop)};
+      handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+    });
+    handle?.addEventListener('keydown',event=>{const step={ArrowLeft:40,ArrowRight:-40}[event.key];if(!step)return;event.preventDefault();preview.style.width=clampWidth(preview.getBoundingClientRect().width+step)+'px'});
+
+    if(document.readyState==='complete')maybeLoadAgent();else addEventListener('load',maybeLoadAgent,{once:true});
   }
 
   $$('[data-billing]').forEach(button=>button.addEventListener('click',()=>{$$('[data-billing]').forEach(item=>item.classList.toggle('active',item===button));$$('.price[data-month]').forEach(price=>price.innerHTML=`${button.dataset.billing==='year'?price.dataset.year:price.dataset.month} <small>/mês</small>`)}));
@@ -98,7 +170,7 @@
   $('[data-new-chat]')?.addEventListener('click',()=>{toast('Novo chat iniciado.','ph-chats');setTimeout(()=>location.href='chat.html',600)});
 
   // Tooltip em botões e itens de menu (usa data-tooltip ou aria-label)
-  const tipTargets='[data-tooltip],.glass-key[aria-label],.icon-btn[aria-label],.round-key[aria-label],.source-remove[aria-label]';
+  const tipTargets='[data-tooltip],.preview-seg button[aria-label],.glass-key[aria-label],.icon-btn[aria-label],.round-key[aria-label],.source-remove[aria-label]';
   const tip=document.createElement('div');tip.className='tooltip';tip.setAttribute('role','tooltip');tip.setAttribute('aria-hidden','true');document.body.append(tip);
   let tipTimer=0,tipOwner=null;
   function showTip(target){

@@ -2,8 +2,8 @@
    com three.js. O arquivo vem embutido em base64 (2 partes) para funcionar sem fetch/blob/WebAssembly,
    em qualquer hospedagem e também via file://. */
 (()=>{
-  const host=document.querySelector('.core-model');
-  if(!host)return;
+window.NexoraBrain3D=function(host){
+  if(!host||host.dataset.mounted)return;host.dataset.mounted='1';
   const status=host.querySelector('.core-model-status');
   const setStatus=text=>{if(status)status.textContent=text};
 
@@ -77,4 +77,7 @@
       renderer.setAnimationLoop(()=>{mixer.update(clock.getDelta());controls.update();renderer.render(scene,camera)});
     },error=>fallback('falha ao ler o GLB: '+(error?.message||error)));
   },30);
+};
+const home=document.querySelector('.core-stage .core-model');
+if(home)window.NexoraBrain3D(home);
 })();
