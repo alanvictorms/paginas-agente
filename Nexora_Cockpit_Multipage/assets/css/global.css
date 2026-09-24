@@ -81,3 +81,4 @@
 @media(max-width:820px){.chat-toolbar{flex-direction:column;align-items:stretch;gap:10px}.chat-toolbar .searchbox{flex:auto}.chat-list{padding:4px 6px 8px}.chat-row{grid-template-columns:38px minmax(0,1fr);gap:11px;padding:12px 6px}.chat-row .mark{width:38px;height:38px}.chat-meta{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between}}
 .dock-link:first-child{border-left:1px solid rgba(194,117,66,.2)}
 @media(max-width:820px){.dock{justify-content:stretch}.dock-link:first-child{border-left:0}}
+.core-model canvas{filter:drop-shadow(0 0 6px rgba(80,215,255,.45)) drop-shadow(0 0 22px rgba(190,70,255,.22))}
