@@ -78,11 +78,44 @@
   $$('[data-billing]').forEach(button=>button.addEventListener('click',()=>{$$('[data-billing]').forEach(item=>item.classList.toggle('active',item===button));$$('.price[data-month]').forEach(price=>price.innerHTML=`${button.dataset.billing==='year'?price.dataset.year:price.dataset.month} <small>/mês</small>`)}));
   $$('[data-plan]').forEach(button=>button.addEventListener('click',()=>toast(`Plano ${button.dataset.plan} selecionado.`,'ph-seal-check')));
 
-  $$('.profile-tab').forEach(button=>button.addEventListener('click',()=>{$$('.profile-tab').forEach(item=>item.classList.toggle('active',item===button));$$('.settings-view').forEach(view=>view.classList.toggle('active',view.dataset.settings===button.dataset.settings))}));
+  $$('.profile-tab[data-settings]').forEach(button=>button.addEventListener('click',()=>{$$('.profile-tab[data-settings]').forEach(item=>item.classList.toggle('active',item===button));$$('.settings-view').forEach(view=>view.classList.toggle('active',view.dataset.settings===button.dataset.settings))}));
   const themes={amber:['#f1904e','#ffc08e'],green:['#61e083','#adffbd'],blue:['#56a3ff','#96c9ff']};
   $$('.theme-card').forEach(button=>button.addEventListener('click',()=>{$$('.theme-card').forEach(item=>item.classList.toggle('active',item===button));const colors=themes[button.dataset.theme];document.documentElement.style.setProperty('--copper',colors[0]);document.documentElement.style.setProperty('--copper2',colors[1]);localStorage.setItem('nexora-theme',button.dataset.theme);toast('Atmosfera visual atualizada.','ph-palette')}));
   const savedTheme=localStorage.getItem('nexora-theme');if(savedTheme&&themes[savedTheme]){document.documentElement.style.setProperty('--copper',themes[savedTheme][0]);document.documentElement.style.setProperty('--copper2',themes[savedTheme][1]);$$('.theme-card').forEach(item=>item.classList.toggle('active',item.dataset.theme===savedTheme))}
   $$('form[data-save]').forEach(form=>form.addEventListener('submit',event=>{event.preventDefault();toast('Alterações salvas.','ph-check-circle')}));
+
+  // Lista de chats (chats.html)
+  const chatSearch=$('#chatSearch');let chatFilter='all';
+  function filterChats(){
+    const query=(chatSearch?.value||'').trim().toLowerCase();let visible=0;
+    $$('[data-chat]').forEach(row=>{const match=(chatFilter==='all'||row.dataset.project===chatFilter)&&row.textContent.toLowerCase().includes(query);row.hidden=!match;if(match)visible++});
+    $$('[data-chat-group]').forEach(group=>group.hidden=!$$('[data-chat]',group).some(row=>!row.hidden));
+    const empty=$('.chat-empty');if(empty)empty.hidden=visible>0;
+  }
+  chatSearch?.addEventListener('input',filterChats);
+  $$('[data-chat-filter]').forEach(button=>button.addEventListener('click',()=>{chatFilter=button.dataset.chatFilter;$$('[data-chat-filter]').forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active))});filterChats()}));
+  $$('[data-chat]').forEach(row=>row.addEventListener('click',()=>{try{localStorage.setItem('nexora-project',row.dataset.project)}catch(error){}}));
+  $('[data-new-chat]')?.addEventListener('click',()=>{toast('Novo chat iniciado.','ph-chats');setTimeout(()=>location.href='chat.html',600)});
+
+  // Tooltip em botões e itens de menu (usa data-tooltip ou aria-label)
+  const tipTargets='[data-tooltip],.glass-key[aria-label],.icon-btn[aria-label],.round-key[aria-label],.source-remove[aria-label]';
+  const tip=document.createElement('div');tip.className='tooltip';tip.setAttribute('role','tooltip');tip.setAttribute('aria-hidden','true');document.body.append(tip);
+  let tipTimer=0,tipOwner=null;
+  function showTip(target){
+    const text=target.dataset.tooltip||target.getAttribute('aria-label');if(!text)return;
+    tipOwner=target;tip.textContent=text;tip.style.transform='translate(-9999px,0)';tip.classList.add('show');
+    const box=target.getBoundingClientRect(),size=tip.getBoundingClientRect();
+    let top=box.top-size.height-10;if(top<8)top=box.bottom+10;
+    const left=Math.max(8,Math.min(box.left+box.width/2-size.width/2,innerWidth-size.width-8));
+    tip.style.transform=`translate(${Math.round(left)}px,${Math.round(top)}px)`;
+  }
+  function hideTip(){clearTimeout(tipTimer);tipOwner=null;tip.classList.remove('show')}
+  document.addEventListener('pointerover',event=>{if(event.pointerType!=='mouse')return;const target=event.target.closest(tipTargets);if(!target||target===tipOwner)return;hideTip();tipTimer=setTimeout(()=>showTip(target),280)});
+  document.addEventListener('pointerout',event=>{const target=event.target.closest(tipTargets);if(target&&!target.contains(event.relatedTarget))hideTip()});
+  document.addEventListener('focusin',event=>{const target=event.target.closest(tipTargets);if(target&&target.matches(':focus-visible'))showTip(target)});
+  document.addEventListener('focusout',hideTip);
+  document.addEventListener('pointerdown',hideTip);
+  addEventListener('scroll',hideTip,true);
 
   $('#loginForm')?.addEventListener('submit',event=>{event.preventDefault();const button=$('[type="submit"]',event.currentTarget);button.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';setTimeout(()=>location.href='index.html',650)});
 })();
